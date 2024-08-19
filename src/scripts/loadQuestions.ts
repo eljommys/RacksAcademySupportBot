@@ -1,10 +1,8 @@
 import axios from "axios";
-import { QdrantClient } from "@qdrant/js-client-rest";
-import { MongoClient } from "mongodb";
 import * as dotenv from "dotenv";
 import OpenAI from "openai";
 import env from "~/environment";
-import { VectorDb } from "~/db/vector.db.class";
+import { VectorDbService } from "~/services/vectordb.service";
 
 dotenv.config();
 
@@ -20,7 +18,7 @@ const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 // const qdrantClient = new QdrantClient({ url: env.QDRANT_API_URL });
 // const qdrantCollectionName =
 //   env.QDRANT_COLLECTION_NAME || "discourse_embeddings";
-const qdrant = new VectorDb(env.QDRANT_COLLECTION_NAME);
+const qdrant = new VectorDbService(env.QDRANT_COLLECTION_NAME);
 
 async function getTopics() {
   const response = await axios.get(`${discourseApiUrl}/latest.json`, {
@@ -72,7 +70,7 @@ async function processTopic(topic: any) {
             topic_title: topic.title,
             content: paragraph.trim(),
           };
-          await qdrant.addMessage(paragraph.trim(), metadata);
+          await qdrant.addMessageDiscourse(paragraph.trim(), metadata);
           // await saveEmbeddingToQdrant(embedding, metadata);
         }
       }
@@ -85,7 +83,7 @@ async function processTopic(topic: any) {
         content: content,
       };
       // await saveEmbeddingToQdrant(embedding, metadata);
-      await qdrant.addMessage(content, metadata);
+      await qdrant.addMessageDiscourse(content, metadata);
     }
   }
 }

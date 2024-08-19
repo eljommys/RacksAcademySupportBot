@@ -1,11 +1,26 @@
 import { MongoClient, Db, Collection, ServerApiVersion } from "mongodb";
 import env from "~/environment";
-import { Teacher } from "../utils/types";
 
-class MongoDB {
+type DbChatHistory = {
+  createdAt: Date;
+  message: string;
+  userId: string;
+  role: "user" | "assistant";
+};
+
+type DbTeacher = {
+  whatsappNumber: string;
+  discourse: {
+    username: string;
+    categories: number[];
+  };
+};
+
+class MongoDBService {
   private client: MongoClient;
   private db: Db;
-  public teachers: Collection<Teacher>;
+  public teachersCollection: Collection<DbTeacher>;
+  public chatHistoryCollection: Collection<DbChatHistory>;
   private host: string;
 
   constructor(protocol: string, host: string, dbName: string, appName: string) {
@@ -23,7 +38,7 @@ class MongoDB {
       },
     });
     this.db = this.client.db(dbName);
-    this.teachers = this.db.collection("teachers");
+    this.teachersCollection = this.db.collection("teachers");
   }
 
   async connect() {
@@ -48,4 +63,4 @@ class MongoDB {
   }
 }
 
-export default MongoDB;
+export { DbChatHistory, MongoDBService, DbTeacher };
