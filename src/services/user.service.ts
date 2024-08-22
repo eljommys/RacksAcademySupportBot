@@ -6,37 +6,23 @@ import { DbChatHistory, MongoDBService } from "./mongodb.service";
 // import { DbChatHistory, MongoDb } from "src/services/mongo.db";
 
 class UserService {
-  mongoCollection: Collection<DbChatHistory>;
+  mongodb: MongoDBService;
   vectorDb: VectorDbService;
 
   constructor(vectorDb: VectorDbService) {
-    this.mongoCollection = null;
     this.vectorDb = vectorDb;
   }
 
-  async initializeDb(mongoDb: MongoDBService) {
-    this.mongoCollection = mongoDb.chatHistoryCollection;
-    try {
-      await this.vectorDb.createCollection();
-    } catch (error) {
-      console.error("[ERROR]initializeDb():", error);
-    }
-  }
-
-  async addHistory(
-    message: string,
-    userId: string,
-    role: "user" | "assistant"
-  ) {
+  async addHistory(message: string, from: string, role: "user" | "assistant") {
     await this.vectorDb.addMessageChat(message, {
-      user_id: userId,
+      from,
       role,
       message,
     });
-    await this.mongoCollection.insertOne({
+    await this.mongodb.chatHistoryCollection.insertOne({
       createdAt: new Date(),
       message,
-      userId,
+      from,
       role,
     });
   }
@@ -46,7 +32,7 @@ class UserService {
   }
 
   async getHistory(userId: string, rows = 25) {
-    const rawHistory = await this.mongoCollection
+    const rawHistory = await this.mongodb.chatHistoryCollection
       .find({ userId })
       .sort({ _id: -1 })
       .limit(rows)
@@ -66,8 +52,8 @@ class UserService {
   async getRelatedHistory(message: string, userId: string) {
     const rawHistory = await this.vectorDb.searchChat(message, 5, userId);
     const history = rawHistory.map((e) => ({
-      message: e.payload.message,
-      role: e.payload.role,
+      message: e.message,
+      role: e.role,
     }));
 
     return history;

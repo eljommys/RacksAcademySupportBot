@@ -7,6 +7,8 @@ import env from "./environment";
 import { UserService } from "./services/user.service";
 import { VectorDbService } from "./services/vectordb.service";
 import { MongoDBService } from "./services/mongodb.service";
+import OpenAI from "openai";
+import { DiscourseService } from "./services/discourse.service";
 
 const PORT = env.PORT;
 
@@ -21,11 +23,15 @@ const main = async () => {
     dbName: env.MONGO_DATABASE,
   });
 
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+
   const vectorDb = new VectorDbService(
+    openai,
     env.QDRANT_HOST,
-    Number(env.QDRANT_PORT),
-    env.QDRANT_API_KEY
+    env.QDRANT_API_KEY,
+    Number(env.QDRANT_PORT)
   );
+  await vectorDb.initialize();
 
   const mongodb = new MongoDBService(
     env.MONGO_PROTOCOL,
@@ -36,12 +42,19 @@ const main = async () => {
   await mongodb.connect();
 
   const user = new UserService(vectorDb);
-  await user.initializeDb(mongodb);
+
+  const discourse = new DiscourseService({
+    apiKey: env.DISCOURSE_API_KEY,
+    apiUsername: env.DISCOURSE_API_USERNAME,
+    baseUrl: env.DISCOURSE_API_BASE_URL,
+  });
 
   const extensions = {
     // chatwoot,
     database: adapterDB,
     user,
+    discourse,
+    mongodb,
     // apiClient,
   };
 

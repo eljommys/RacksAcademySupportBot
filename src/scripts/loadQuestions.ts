@@ -2,6 +2,7 @@ import axios from "axios";
 import * as dotenv from "dotenv";
 import OpenAI from "openai";
 import env from "~/environment";
+import { DiscoursePost, DiscourseTopic } from "~/services/discourse.service";
 import { VectorDbService } from "~/services/vectordb.service";
 
 dotenv.config();
@@ -18,7 +19,11 @@ const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 // const qdrantClient = new QdrantClient({ url: env.QDRANT_API_URL });
 // const qdrantCollectionName =
 //   env.QDRANT_COLLECTION_NAME || "discourse_embeddings";
-const qdrant = new VectorDbService(env.QDRANT_COLLECTION_NAME);
+const qdrant = new VectorDbService(
+  openai,
+  env.QDRANT_COLLECTION_NAME,
+  env.QDRANT_API_KEY
+);
 
 async function getTopics() {
   const response = await axios.get(`${discourseApiUrl}/latest.json`, {
@@ -39,7 +44,7 @@ async function getPostsFromTopic(topicId: number) {
     },
   });
 
-  return response.data.post_stream.posts;
+  return response.data.post_stream.posts as DiscoursePost[];
 }
 
 async function generateEmbeddings(content: string) {
@@ -51,7 +56,7 @@ async function generateEmbeddings(content: string) {
   return response.data[0].embedding;
 }
 
-async function processTopic(topic: any) {
+async function processTopic(topic: DiscourseTopic) {
   const posts = await getPostsFromTopic(topic.id);
 
   for (const post of posts) {

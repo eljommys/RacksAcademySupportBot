@@ -2,14 +2,28 @@ import { QdrantClient } from "@qdrant/js-client-rest";
 import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
 
+type DiscourseEmbeddingMetadata = {
+  post_id: number;
+  topic_id: number;
+  topic_title: string;
+  content: string;
+};
+
+type ChatEmbeddingMetadata = {
+  from: string;
+  role: "assistant" | "user";
+  message: string;
+};
+
 class VectorDbService {
   client: QdrantClient;
   openai: OpenAI;
 
   constructor(
+    openai: OpenAI,
     host: string = "localhost",
-    port: number = 6333,
-    apiKey: string = ""
+    apiKey: string,
+    port: number = 6333
   ) {
     console.log("🚀 ~ VectorDb ~ host:", host);
 
@@ -18,7 +32,7 @@ class VectorDbService {
       apiKey: apiKey,
     });
 
-    this.openai = new OpenAI();
+    this.openai = openai;
   }
 
   private async _getVector(message: string) {
@@ -31,13 +45,17 @@ class VectorDbService {
     return embedding.data[0].embedding;
   }
 
-  async createCollection() {
-    await this.client.createCollection("chat", {
-      vectors: { size: 1536, distance: "Cosine" },
-    });
-    await this.client.createCollection("discourse", {
-      vectors: { size: 1536, distance: "Cosine" },
-    });
+  async initialize() {
+    try {
+      await this.client.createCollection("chat", {
+        vectors: { size: 1536, distance: "Cosine" },
+      });
+      await this.client.createCollection("discourse", {
+        vectors: { size: 1536, distance: "Cosine" },
+      });
+    } catch (error) {
+      console.error(`VectorDbService: Error creating collections: ${error}`);
+    }
   }
 
   private async _addMessage(
@@ -56,28 +74,20 @@ class VectorDbService {
     });
   }
 
-  async addMessageChat(
-    message: string,
-    metadata: { user_id: string; role: "assistant" | "user"; message: string }
-  ) {
+  async addMessageChat(message: string, metadata: ChatEmbeddingMetadata) {
     const vector = await this._getVector(message);
     await this._addMessage("chat", vector, metadata);
   }
 
   async addMessageDiscourse(
     message: string,
-    metadata: {
-      post_id: string;
-      topic_id: string;
-      topic_title: string;
-      content: string;
-    }
+    metadata: DiscourseEmbeddingMetadata
   ) {
     const vector = await this._getVector(message);
     await this._addMessage("discourse", vector, metadata);
   }
 
-  private async _search(
+  private async _search<T>(
     collectionName: string,
     vector: number[],
     limit: number = 5,
@@ -104,18 +114,28 @@ class VectorDbService {
       limit,
     });
 
-    return points;
+    return points.map((p) => p.payload) as T[];
   }
 
   async searchChat(message: string, limit: number = 20, userId?: string) {
     const vector = await this._getVector(message);
-    const points = await this._search("chat", vector, limit, userId);
+    const points = await this._search<ChatEmbeddingMetadata>(
+      "chat",
+      vector,
+      limit,
+      userId
+    );
     return points;
   }
 
   async searchDiscourse(message: string, limit: number = 3) {
     const vector = await this._getVector(message);
-    const points = await this._search("discourse", vector, limit);
+    const points = await this._search<DiscourseEmbeddingMetadata>(
+      "discourse",
+      vector,
+      limit
+    );
+    return points;
   }
 }
 

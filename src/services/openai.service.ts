@@ -18,7 +18,7 @@ import { ChatCompletionToolRunnerParams } from "openai/lib/ChatCompletionRunner"
 //   functionName: string;
 // };
 
-// const REFORMULATION_TEMPLATE = `Dada la siguiente conversación y una pregunta de seguimiento, reformula la pregunta de seguimiento para que sea una pregunta independiente.
+const REFORMULATION_TEMPLATE = `Dada la siguiente conversación y una pregunta de seguimiento, reformula la pregunta de seguimiento para que sea una pregunta independiente.
 
 // Historial del chat:
 // {%chat_history%}
@@ -152,6 +152,29 @@ class OpenAIService {
     return result;
   }
 
+  // private async monetizeUserOpenAI(
+  //     functionName: string,
+  //     userPhone: string,
+  //     inputTokens: number,
+  //     outputTokens: number,
+  //     modelName: "gpt-3.5-turbo-16k" | "gpt-4"
+  //   ) {
+  //     const createdAt = Date.now();
+
+  //     const dbCost: DbCost = {
+  //       userPhone,
+  //       inputTokens,
+  //       outputTokens,
+  //       modelName,
+  //       createdAt,
+  //       functionName,
+  //     };
+
+  //     const collection = db.collection<DbCost>("cost");
+
+  //     await collection.insertOne(dbCost);
+  // }
+
   async assistantResponse(
     functionName: string,
     template: string,
@@ -209,10 +232,10 @@ class OpenAIService {
     } as ChatCompletionToolRunnerParams<any[]>);
     // .on("message", (message) => console.log(message));
 
-    const inputTokens = (await runner.totalUsage()).prompt_tokens;
+    // const inputTokens = (await runner.totalUsage()).prompt_tokens;
     // const outputTokens = (await runner.totalUsage()).completion_tokens;
 
-    // await monetizeUserOpenAI(
+    // await _monetizeUserOpenAI(
     //   functionName,
     //   userPhone,
     //   inputTokens,
@@ -225,7 +248,20 @@ class OpenAIService {
     return finalContent;
   }
 
-  async _voiceToText(path: any) {
+  async reformulateQuestion(
+    chat_history: string,
+    question: string
+  ): Promise<string> {
+    const newQuestion = await this.predictGPT(
+      "reformulateQuestion",
+      REFORMULATION_TEMPLATE,
+      { chat_history, question }
+    );
+
+    return newQuestion;
+  }
+
+  private async _voiceToText(path: any) {
     if (!fs.existsSync(path)) {
       throw new Error("No se encuentra el archivo");
     }

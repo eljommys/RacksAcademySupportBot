@@ -4,7 +4,7 @@ import env from "~/environment";
 type DbChatHistory = {
   createdAt: Date;
   message: string;
-  userId: string;
+  from: string;
   role: "user" | "assistant";
 };
 
