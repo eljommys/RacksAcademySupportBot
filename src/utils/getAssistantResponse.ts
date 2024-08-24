@@ -1,6 +1,3 @@
-// import { User } from "~/services/user.service";
-// import { assistantResponse, predictGPT } from "../../services/openai";
-
 import { DiscourseService } from "~/services/discourse.service";
 import OpenAIService from "~/services/openai.service";
 import { UserService } from "~/services/user.service";
@@ -34,27 +31,6 @@ const PROMPT_TEMPLATE = `
   %message%
   =============
 `;
-// const PROMPT_TEMPLATE = `
-//   En caso de necesitar consultar datos del usuario aqui tienes el "user_id"
-//   ===user_id===
-//   %user_id%
-//   ==============
-
-//   Este es un historial con mensajes que estan relacionados con el mensaje del usuario.
-//   ===HISTORIAL_RELACIONADO===
-//   %user_related_history%
-//   ===========================
-
-//   Este es un historial reciente con los ultimos mensajes de la conversacion con el usuario.
-//   ===HISTORIAL_RECIENTE===
-//   %user_recent_history%
-//   ========================
-
-//   Este es el mensaje que el usuario ha mandado.
-//   ===MENSAJE===
-//   %message%
-//   =============
-// `;
 
 export default async function getAssitantResponse(
   openai: OpenAIService,
