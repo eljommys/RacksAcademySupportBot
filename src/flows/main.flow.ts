@@ -16,7 +16,7 @@ export default addKeyword(EVENTS.WELCOME)
     const discourse = methods.extensions.discourse as DiscourseService;
     const mongodb = methods.extensions.mongodb as MongoDBService;
 
-    const response = await getAssistantResponse(
+    const { response, topics } = await getAssistantResponse(
       openai,
       user,
       discourse,
@@ -30,4 +30,9 @@ export default addKeyword(EVENTS.WELCOME)
         body: response,
       },
     ]);
+    await methods.flowDynamic("Puede que estos hilos te sean de utilidad");
+    for (const topic of topics) {
+      await methods.flowDynamic(`${topic.topicTitle}\n${topic.topicURL}`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
   });

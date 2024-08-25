@@ -39,7 +39,10 @@ export default async function getAssitantResponse(
   mongodb: MongoDBService,
   userId: string,
   message: string
-) {
+): Promise<{
+  response: string;
+  topics: { topicURL: string; topicTitle: string; id: number }[];
+}> {
   try {
     console.log("======getAssistantResponse======");
 
@@ -60,14 +63,21 @@ export default async function getAssitantResponse(
       2
     );
 
-    const topics = await user.vectorDb.searchDiscourse(reformulatedQuestion, 2);
-    const topicIds = topics.map((t) => t.topic_id);
-    const topicURLs = [];
+    const posts = await user.vectorDb.searchDiscourse(reformulatedQuestion, 2);
+    const dbTopics = [
+      ...new Set(posts.map((p) => ({ id: p.topic_id, title: p.topic_title }))),
+    ];
+    const topics: { topicURL: string; topicTitle: string; id: number }[] = [];
     const teacherResponsesRaw = [];
-    for (const topicId of topicIds) {
-      topicURLs.push(await discourse.getTopicUrl(topicId));
+    for (const dbTopic of dbTopics) {
+      const topicURL = await discourse.getTopicUrl(dbTopic.id);
+      topics.push({
+        topicURL,
+        topicTitle: dbTopic.title,
+        id: dbTopic.id,
+      });
       teacherResponsesRaw.concat(
-        await getTeacherResponses(mongodb, discourse, topicId)
+        await getTeacherResponses(mongodb, discourse, dbTopic.id)
       );
     }
     const teacher_responses = JSON.stringify(teacherResponsesRaw, null, 2);
@@ -96,9 +106,9 @@ export default async function getAssitantResponse(
       ]
     );
 
-    return response;
+    return { response, topics };
   } catch (error) {
     console.error(error);
-    return "";
+    return { response: "", topics: [] };
   }
 }
